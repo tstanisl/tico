@@ -5,7 +5,7 @@
 #include <string.h>
 
 #define PIECES 4
-#define SIZE 4
+#define SIZE 5
 
 #define SWAP(type,a,b) \
 	do { type __tmp = (a); (a) = (b); (b) = __tmp; } while (0)
@@ -17,8 +17,8 @@ struct position {
 	struct position *next;
 };
 
-#define HSIZE (1 << 25)
-#define POOLSIZE (4 * HSIZE)
+#define HSIZE (1 << 27)
+#define POOLSIZE (HSIZE)
 
 struct position *htab[HSIZE];
 struct position *positions;
@@ -26,12 +26,28 @@ int n_terminal;
 int n_positions;
 int n_lose;
 int n_win;
+int n_htab;
 
 uint32_t hash_position(struct position *p)
 {
+	uint32_t hash = 0;
+	const uint32_t mult = 521893723u;
+	//const uint32_t mult = 37u;
+	for (int i = 0; i < PIECES; ++i) {
+		hash = mult * hash;
+		hash += p->white[i];
+		hash = mult * hash;
+		hash += p->black[i];
+		//hash = 912839121u * hash + p->black[i];
+	}
+	//hash = mult * hash;
+#if 0
 	uint32_t *a = (uint32_t*)p->white;
 	uint32_t *b = (uint32_t*)p->black;
-	return *a * 521893723u + *b * 912839121u;
+	uint32_t hash = *a * 521893723u + *b * 912839121u;
+	hash ^= hash >> 17;
+#endif
+	return hash;
 }
 
 void sort4(uint8_t A[PIECES])
@@ -205,6 +221,8 @@ struct position *make_node(struct position *p)
 		exit(-1);
 	}
 
+	if (*head == NULL)
+		++n_htab;
 	struct position *n = &positions[n_positions++];
 	memcpy(n, p, sizeof *p);
 	n->next = *head;
@@ -253,6 +271,7 @@ void dump_stat(void)
 	fprintf(stderr, "n_win=%d\n", n_win);
 	fprintf(stderr, "n_lose=%d\n", n_lose);
 	fprintf(stderr, "n_all=%d\n", n_positions);
+	fprintf(stderr, "n_htab=%d\n", n_htab);
 	fprintf(stderr, "pool=%lld %%\n", 100LL * n_positions / POOLSIZE);
 }
 
