@@ -3,9 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define PIECES 4
-#define SIZE 5
+#define SIZE 4
 
 #define SWAP(type,a,b) \
 	do { type __tmp = (a); (a) = (b); (b) = __tmp; } while (0)
@@ -129,15 +130,20 @@ int count_children(struct position *p)
 	return count;
 }
 
-typedef void (*foreach_child_cb)(struct position *);
-void foreach_child(struct position *p, foreach_child_cb cb)
+void gen_taken(bool taken[SIZE * SIZE], struct position *p)
 {
-	bool taken[SIZE * SIZE];
 	memset(taken, 0, sizeof taken);
 	for (int i = 0; i < PIECES; ++i) {
 		taken[p->white[i]] = true;
 		taken[p->black[i]] = true;
 	}
+}
+
+typedef void (*foreach_child_cb)(struct position *);
+void foreach_child(struct position *p, foreach_child_cb cb)
+{
+	bool taken[SIZE * SIZE];
+	gen_taken(taken, p);
 
 	struct position child;
 	memcpy(child.black, p->white, sizeof p->white);
@@ -208,13 +214,19 @@ void make_lose_node(struct position *n)
 	foreach_child(n, make_lose_node_helper);
 }
 
+static bool equal_position(struct position *p, struct position *n)
+{
+	/*return (memcmp(p->white, n->white, sizeof p->white) == 0 &&
+	    memcmp(p->black, n->black, sizeof p->black) == 0);*/
+	return memcmp(p, n, 2 * PIECES) == 0;
+}
+
 struct position *make_node(struct position *p)
 {
 	uint32_t hash = hash_position(p);
 	struct position **head = &htab[hash & (HSIZE - 1)];
 	for (struct position *n = *head; n; n = n->next)
-		if (memcmp(p->white, n->white, sizeof p->white) == 0 &&
-		    memcmp(p->black, n->black, sizeof p->black) == 0)
+		if (equal_position(p, n))
 			return n;
 	if (n_positions == POOLSIZE) {
 		fprintf(stderr, "out of memory\n");
@@ -237,9 +249,6 @@ struct position *make_node(struct position *p)
 
 void dump_position(struct position *p)
 {
-	static int cnt = 0;
-	if (++cnt % 10000 == 0)
-		fprintf(stderr, "count=%d\n", cnt);
 	char dump[SIZE * SIZE];
 	memset(dump, '.', sizeof dump);
 
@@ -251,11 +260,17 @@ void dump_position(struct position *p)
 
 	for (int i = 0; i < PIECES; ++i)
 		printf("%d ", p->white[i]);
-	putchar('|');
+	putchar(' ');
 	for (int i = 0; i < PIECES; ++i)
 		printf("%d ", p->black[i]);
-	//putchar('\n');
-	printf("| %d\n", count_children(p));
+	if (p->n_children == 0)
+		putchar('L');
+	else if (p->n_children == -1)
+		putchar('W');
+	else
+		putchar('U');
+	putchar('\n');
+	//printf("| %d\n", count_children(p));
 
 	for (int i = 0; i < SIZE * SIZE; ++i) {
 		putchar(dump[i]);
@@ -320,12 +335,76 @@ void gen_terminals_black(struct position *p, int piece)
 	}
 }
 
+void randperm(uint8_t P[], int N, int M)
+{
+	int perm[M];
+	for (int i = 0; i < M; ++i)
+		perm[i] = i;
+	for (int i = 0; i < N; ++i) {
+		int j = rand() % (M - i);
+		P[i] = perm[j];
+		perm[j] = perm[M - i - 1];
+	}
+}
+
+void play()
+{
+	srand(time(0));
+	uint8_t perm[2 * PIECES];
+	randperm(perm, 2 * PIECES, SIZE * SIZE);
+	struct position p = {};
+	memcpy(p.white, perm, PIECES);
+	memcpy(p.black, perm + PIECES, PIECES);
+	for (;;) {
+		dump_position(&p);
+		if (is_terminal(p.black)) {
+			puts("You won!");
+			return;
+		}
+		bool taken[SIZE * SIZE];
+		gen_taken(taken, &p);
+		int v, v_;
+		for (;;) {
+			puts("Your move? [x y d]");
+			int x, y, d, ret;
+			ret = scanf("%d %d %d", &x, &y, &d);
+			v = x + SIZE * y;
+			int x_ = x, y_ = y;
+			if (d == 0) x_ += 1;
+			if (d == 1) y_ += 1;
+			if (d == 2) x_ -= 1;
+			if (d == 3) y_ -= 1;
+			v_ = x_ + SIZE * y_;
+			printf("(%d,%d)->(%d,%d)\n",x,y,x_,y_);
+			if (ret == 3 &&
+			    x >= 0 && x < SIZE &&
+			    y >= 0 && y < SIZE &&
+			    taken[v] &&
+			    x_ >= 0 && x_ < SIZE &&
+			    y_ >= 0 && y_ < SIZE &&
+			    !taken[v_])
+				break;
+			puts("Invalid move!");
+		}
+		for (int i = 0; i < PIECES; ++i)
+			if (p.white[i] == v)
+				p.white[i] = v_;
+		sort4(p.white);
+	}
+}
+
 int main()
 {
 	positions = malloc(POOLSIZE * sizeof positions[0]);
 	struct position p = {};
 	gen_terminals_black(&p, 0);
 	dump_stat();
+#if 0
+	for (int i = 0; i < n_positions; ++i)
+		if (positions[i].n_children <= 0)
+			dump_position(&positions[i]);
+#endif
+	play();
 	return 0;
 }
 
