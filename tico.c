@@ -17,12 +17,14 @@ struct position {
 	struct position *next;
 };
 
-#define HSIZE (1 << 24)
+#define HSIZE (1 << 25)
 #define POOLSIZE (4 * HSIZE)
 
 struct position *htab[HSIZE];
-struct position positions[POOLSIZE];
+struct position *positions;
 int n_positions;
+int n_lose;
+int n_win;
 
 uint32_t hash_position(struct position *p)
 {
@@ -170,6 +172,7 @@ void make_win_node_helper(struct position *child)
 
 void make_win_node(struct position *n)
 {
+	++n_win;
 	n->n_children = -1;
 	foreach_child(n, make_win_node_helper);
 }
@@ -183,6 +186,7 @@ void make_lose_node_helper(struct position *child)
 
 void make_lose_node(struct position *n)
 {
+	++n_lose;
 	n->n_children = 0;
 	foreach_child(n, make_lose_node_helper);
 }
@@ -248,6 +252,9 @@ void gen_terminals_white(struct position *p, int piece)
 		static int cnt = 0;
 		if (++cnt % 10000 == 0) {
 			fprintf(stderr, "count=%d\n", cnt);
+			fprintf(stderr, "n_win=%d\n", n_win);
+			fprintf(stderr, "n_lose=%d\n", n_lose);
+			fprintf(stderr, "n_all=%d\n", n_positions);
 			fprintf(stderr, "pool=%lld p/c\n",
 				100LL * n_positions / POOLSIZE);
 		}
@@ -291,6 +298,7 @@ void gen_terminals_black(struct position *p, int piece)
 
 int main()
 {
+	positions = malloc(POOLSIZE * sizeof positions[0]);
 	struct position p = {};
 	gen_terminals_black(&p, 0);
 	return 0;
