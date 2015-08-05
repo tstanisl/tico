@@ -221,6 +221,16 @@ static bool equal_position(struct position *p, struct position *n)
 	return memcmp(p, n, 2 * PIECES) == 0;
 }
 
+struct position *find_node(struct position *p)
+{
+	uint32_t hash = hash_position(p);
+	struct position **head = &htab[hash & (HSIZE - 1)];
+	for (struct position *n = *head; n; n = n->next)
+		if (equal_position(p, n))
+			return n;
+	return NULL;
+}
+
 struct position *make_node(struct position *p)
 {
 	uint32_t hash = hash_position(p);
@@ -347,6 +357,52 @@ void randperm(uint8_t P[], int N, int M)
 	}
 }
 
+struct position *ai_best;
+void ai_play_handler(struct position *p)
+{
+	puts("---- checking");
+	//printf("ai_best = %p\n", ai_best);
+	p = make_node(p);
+	dump_position(p);
+	if (p->n_children == -1) {
+		// found winning move
+		ai_best = p;
+		return;
+	}
+
+	if (p->n_children > 0) {
+		// found undefined move 
+		if (!ai_best || ai_best->n_children != -1)
+			ai_best = p;
+		return;
+	}
+	ai_best = p;
+}
+
+void ai_play(struct position *p)
+{
+	struct position *n = find_node(p);
+	if (!n)
+		puts("unknown node");
+	else
+		printf("n_children = %d\n", n->n_children);
+	ai_best = NULL;
+	foreach_child(p, ai_play_handler);
+	if (!ai_best) {
+		puts("I failed.");
+		exit(-1);
+	}
+	if (ai_best->n_children == -1)
+		puts("I think I'm winning.");
+	if (ai_best->n_children == 0)
+		puts("I think I've lost.");
+	if (ai_best->n_children > 0)
+		puts("I am confused.");
+
+	memcpy(p->black, ai_best->white, PIECES);
+	printf("ai_best->n_children = %d\n", ai_best->n_children);
+}
+
 void play()
 {
 	srand(time(0));
@@ -389,6 +445,12 @@ void play()
 		dump_position(&p);
 		if (is_terminal(p.white)) {
 			puts("You won!");
+			return;
+		}
+		ai_play(&p);
+		dump_position(&p);
+		if (is_terminal(p.black)) {
+			puts("I won!");
 			return;
 		}
 	}
