@@ -132,7 +132,7 @@ int count_children(struct position *p)
 
 void gen_taken(bool taken[SIZE * SIZE], struct position *p)
 {
-	memset(taken, 0, sizeof taken);
+	memset(taken, 0, SIZE * SIZE * sizeof taken[0]);
 	for (int i = 0; i < PIECES; ++i) {
 		taken[p->white[i]] = true;
 		taken[p->black[i]] = true;
@@ -355,12 +355,8 @@ void play()
 	struct position p = {};
 	memcpy(p.white, perm, PIECES);
 	memcpy(p.black, perm + PIECES, PIECES);
+	dump_position(&p);
 	for (;;) {
-		dump_position(&p);
-		if (is_terminal(p.black)) {
-			puts("You won!");
-			return;
-		}
 		bool taken[SIZE * SIZE];
 		gen_taken(taken, &p);
 		int v, v_;
@@ -390,6 +386,11 @@ void play()
 			if (p.white[i] == v)
 				p.white[i] = v_;
 		sort4(p.white);
+		dump_position(&p);
+		if (is_terminal(p.white)) {
+			puts("You won!");
+			return;
+		}
 	}
 }
 
