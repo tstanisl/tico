@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define PIECES 4
@@ -16,8 +17,8 @@ struct position {
 	struct position *next;
 };
 
-#define HSIZE (1 << 20)
-#define POOLSIZE (1 << 22)
+#define HSIZE (1 << 24)
+#define POOLSIZE (4 * HSIZE)
 
 struct position *htab[HSIZE];
 struct position positions[POOLSIZE];
@@ -27,7 +28,7 @@ uint32_t hash_position(struct position *p)
 {
 	uint32_t *a = (uint32_t*)p->white;
 	uint32_t *b = (uint32_t*)p->black;
-	return *a * 521893123u + *b * 912839123u;
+	return *a * 521893723u + *b * 912839121u;
 }
 
 void sort4(uint8_t A[PIECES])
@@ -109,13 +110,90 @@ int count_children(struct position *p)
 	return count;
 }
 
-struct position *make_node(struct position *p, bool terminal)
+typedef void (*foreach_child_cb)(struct position *);
+void foreach_child(struct position *p, foreach_child_cb cb)
+{
+	bool taken[SIZE * SIZE];
+	memset(taken, 0, sizeof taken);
+	for (int i = 0; i < PIECES; ++i) {
+		taken[p->white[i]] = true;
+		taken[p->black[i]] = true;
+	}
+
+	struct position child;
+	memcpy(child.black, p->white, sizeof p->white);
+	for (int i = 0; i < PIECES; ++i) {
+		int v = p->black[i];
+		int x = v % SIZE;
+		int y = v / SIZE;
+		if (x > 0 && !taken[v - 1]) {
+			memcpy(child.white, p->black, sizeof p->black);
+			child.white[i] = v - 1;
+			sort4(child.white);
+			cb(&child);
+		}
+		if (x + 1 < SIZE && !taken[v + 1]) {
+			memcpy(child.white, p->black, sizeof p->black);
+			child.white[i] = v + 1;
+			sort4(child.white);
+			cb(&child);
+		}
+
+		if (y > 0 && !taken[v - SIZE]) {
+			memcpy(child.white, p->black, sizeof p->black);
+			child.white[i] = v - SIZE;
+			sort4(child.white);
+			cb(&child);
+		}
+
+		if (y + 1 < SIZE && !taken[v + SIZE]) {
+			memcpy(child.white, p->black, sizeof p->black);
+			child.white[i] = v + SIZE;
+			sort4(child.white);
+			cb(&child);
+		}
+	}
+}
+
+void make_lose_node(struct position *n);
+struct position *make_node(struct position *p);
+
+void make_win_node_helper(struct position *child)
+{
+	child = make_node(child);
+	if (child->n_children <= 0)
+		return;
+	child->n_children--;
+	if (child->n_children == 0)
+		make_lose_node(child);
+}
+
+void make_win_node(struct position *n)
+{
+	n->n_children = -1;
+	foreach_child(n, make_win_node_helper);
+}
+
+void make_lose_node_helper(struct position *child)
+{
+	child = make_node(child);
+	if (child->n_children > 0)
+		make_win_node(child);
+}
+
+void make_lose_node(struct position *n)
+{
+	n->n_children = 0;
+	foreach_child(n, make_lose_node_helper);
+}
+
+struct position *make_node(struct position *p)
 {
 	uint32_t hash = hash_position(p);
 	struct position **head = &htab[hash & (HSIZE - 1)];
 	for (struct position *n = *head; n; n = n->next)
-		if (memcmp(p->white, n->white, PIECES) == 0 &&
-		    memcmp(p->black, n->black, PIECES) == 0)
+		if (memcmp(p->white, n->white, sizeof p->white) == 0 &&
+		    memcmp(p->black, n->black, sizeof p->black) == 0)
 			return n;
 	if (n_positions == POOLSIZE) {
 		fprintf(stderr, "out of memory\n");
@@ -126,10 +204,11 @@ struct position *make_node(struct position *p, bool terminal)
 	memcpy(n, p, sizeof *p);
 	n->next = *head;
 	*head = n;
-	if (terminal)
+	n->n_children = count_children(n);
+	/*if (terminal)
 		n->n_children = 0;
 	else
-		n->n_children = count_children(n);
+		n->n_children = count_children(n);*/
 	return n;
 }
 
@@ -166,8 +245,17 @@ void dump_position(struct position *p)
 void gen_terminals_white(struct position *p, int piece)
 {
 	if (piece == PIECES) {
-		if (!is_terminal(p->white))
-			dump_position(p);
+		static int cnt = 0;
+		if (++cnt % 10000 == 0) {
+			fprintf(stderr, "count=%d\n", cnt);
+			fprintf(stderr, "pool=%lld p/c\n",
+				100LL * n_positions / POOLSIZE);
+		}
+		if (!is_terminal(p->white)) {
+			//dump_position(p);
+			struct position *n = make_node(p);
+			make_lose_node(n);
+		}
 		return;
 	}
 	int start = piece ? p->white[piece - 1] + 1 : 0;
