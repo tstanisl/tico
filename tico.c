@@ -5,7 +5,7 @@
 #include <string.h>
 
 #define PIECES 4
-#define SIZE 5
+#define SIZE 4
 
 #define SWAP(type,a,b) \
 	do { type __tmp = (a); (a) = (b); (b) = __tmp; } while (0)
@@ -22,6 +22,7 @@ struct position {
 
 struct position *htab[HSIZE];
 struct position *positions;
+int n_terminal;
 int n_positions;
 int n_lose;
 int n_win;
@@ -246,21 +247,25 @@ void dump_position(struct position *p)
 	putchar('\n');
 }
 
+void dump_stat(void)
+{
+	fprintf(stderr, "n_term=%d\n", n_terminal);
+	fprintf(stderr, "n_win=%d\n", n_win);
+	fprintf(stderr, "n_lose=%d\n", n_lose);
+	fprintf(stderr, "n_all=%d\n", n_positions);
+	fprintf(stderr, "pool=%lld %%\n", 100LL * n_positions / POOLSIZE);
+}
+
 void gen_terminals_white(struct position *p, int piece)
 {
 	if (piece == PIECES) {
 		static int cnt = 0;
-		if (++cnt % 10000 == 0) {
-			fprintf(stderr, "count=%d\n", cnt);
-			fprintf(stderr, "n_win=%d\n", n_win);
-			fprintf(stderr, "n_lose=%d\n", n_lose);
-			fprintf(stderr, "n_all=%d\n", n_positions);
-			fprintf(stderr, "pool=%lld p/c\n",
-				100LL * n_positions / POOLSIZE);
-		}
+		if (++cnt % 10000 == 0)
+			dump_stat();
 		if (!is_terminal(p->white)) {
 			//dump_position(p);
 			struct position *n = make_node(p);
+			++n_terminal;
 			make_lose_node(n);
 		}
 		return;
@@ -301,6 +306,7 @@ int main()
 	positions = malloc(POOLSIZE * sizeof positions[0]);
 	struct position p = {};
 	gen_terminals_black(&p, 0);
+	dump_stat();
 	return 0;
 }
 
