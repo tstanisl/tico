@@ -13,9 +13,22 @@ struct position {
 	uint8_t white[PIECES];
 	uint8_t black[PIECES];
 	int n_children;
-	bool finalized;
 	struct position *next;
 };
+
+#define HSIZE (1 << 20)
+#define POOLSIZE (1 << 22)
+
+struct position *htab[HSIZE];
+struct position positions[POOLSIZE];
+int n_positions;
+
+uint32_t hash_position(struct position *p)
+{
+	uint32_t *a = (uint32_t*)p->white;
+	uint32_t *b = (uint32_t*)p->black;
+	return *a * 521893123u + *b * 912839123u;
+}
 
 void sort4(uint8_t A[PIECES])
 {
@@ -70,6 +83,56 @@ bool is_terminal(uint8_t A[PIECES])
 	return false;
 }
 
+int count_children(struct position *p)
+{
+	bool taken[SIZE * SIZE];
+	memset(taken, 0, sizeof taken);
+	for (int i = 0; i < PIECES; ++i) {
+		taken[p->white[i]] = true;
+		taken[p->black[i]] = true;
+	}
+
+	int count = 0;
+	for (int i = 0; i < PIECES; ++i) {
+		int v = p->white[i];
+		int x = v % SIZE;
+		int y = v / SIZE;
+		if (x > 0 && !taken[v - 1])
+			++count;
+		if (x + 1 < SIZE && !taken[v + 1])
+			++count;
+		if (y > 0 && !taken[v - SIZE])
+			++count;
+		if (y + 1 < SIZE && !taken[v + SIZE])
+			++count;
+	}
+	return count;
+}
+
+struct position *make_node(struct position *p, bool terminal)
+{
+	uint32_t hash = hash_position(p);
+	struct position **head = &htab[hash & (HSIZE - 1)];
+	for (struct position *n = *head; n; n = n->next)
+		if (memcmp(p->white, n->white, PIECES) == 0 &&
+		    memcmp(p->black, n->black, PIECES) == 0)
+			return n;
+	if (n_positions == POOLSIZE) {
+		fprintf(stderr, "out of memory\n");
+		exit(-1);
+	}
+
+	struct position *n = &positions[n_positions++];
+	memcpy(n, p, sizeof *p);
+	n->next = *head;
+	*head = n;
+	if (terminal)
+		n->n_children = 0;
+	else
+		n->n_children = count_children(n);
+	return n;
+}
+
 void dump_position(struct position *p)
 {
 	static int cnt = 0;
@@ -89,7 +152,8 @@ void dump_position(struct position *p)
 	putchar('|');
 	for (int i = 0; i < PIECES; ++i)
 		printf("%d ", p->black[i]);
-	putchar('\n');
+	//putchar('\n');
+	printf("| %d\n", count_children(p));
 
 	for (int i = 0; i < SIZE * SIZE; ++i) {
 		putchar(dump[i]);
