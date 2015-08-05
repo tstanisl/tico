@@ -72,6 +72,9 @@ bool is_terminal(uint8_t A[PIECES])
 
 void dump_position(struct position *p)
 {
+	static int cnt = 0;
+	if (++cnt % 10000 == 0)
+		fprintf(stderr, "count=%d\n", cnt);
 	char dump[SIZE * SIZE];
 	memset(dump, '.', sizeof dump);
 
@@ -83,6 +86,9 @@ void dump_position(struct position *p)
 
 	for (int i = 0; i < PIECES; ++i)
 		printf("%d ", p->white[i]);
+	putchar('|');
+	for (int i = 0; i < PIECES; ++i)
+		printf("%d ", p->black[i]);
 	putchar('\n');
 
 	for (int i = 0; i < SIZE * SIZE; ++i) {
