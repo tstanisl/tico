@@ -197,6 +197,7 @@ void make_win_node(struct position *n)
 {
 	++n_win;
 	n->n_children = -1;
+	//puts("-- winner ---"); dump_position(n);
 	foreach_child(n, make_win_node_helper);
 }
 
@@ -211,6 +212,7 @@ void make_lose_node(struct position *n)
 {
 	++n_lose;
 	n->n_children = 0;
+	//puts("-- loser ---"); dump_position(n);
 	foreach_child(n, make_lose_node_helper);
 }
 
@@ -250,6 +252,8 @@ struct position *make_node(struct position *p)
 	n->next = *head;
 	*head = n;
 	n->n_children = count_children(n);
+	if (is_terminal(n->black))
+		make_lose_node(n);
 	/*if (terminal)
 		n->n_children = 0;
 	else
@@ -308,9 +312,9 @@ void gen_terminals_white(struct position *p, int piece)
 			dump_stat();
 		if (!is_terminal(p->white)) {
 			//dump_position(p);
-			struct position *n = make_node(p);
 			++n_terminal;
-			make_lose_node(n);
+			struct position *n = make_node(p);
+			//make_lose_node(n);
 		}
 		return;
 	}
@@ -333,8 +337,10 @@ void gen_terminals_white(struct position *p, int piece)
 void gen_terminals_black(struct position *p, int piece)
 {
 	if (piece == PIECES) {
-		if (is_terminal(p->black))
+		if (is_terminal(p->black)) {
+			//dump_position(p);
 			gen_terminals_white(p, 0);
+		}
 		return;
 	}
 	int start = piece ? p->black[piece - 1] + 1 : 0;
