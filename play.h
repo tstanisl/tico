@@ -7,7 +7,6 @@ struct player_fo {
 };
 
 extern struct player_fo user_player;
-extern struct player_fo ai_perfect_player;
 
 void play(struct player_fo *white, struct player_fo *black);
 

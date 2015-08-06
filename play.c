@@ -8,8 +8,6 @@
 #include <string.h>
 #include <time.h>
 
-struct position *make_node(struct position *p);
-
 void randperm(uint8_t P[], int N, int M)
 {
 	int perm[M];
@@ -20,56 +18,6 @@ void randperm(uint8_t P[], int N, int M)
 		P[i] = perm[j];
 		perm[j] = perm[M - i - 1];
 	}
-}
-
-struct position *ai_best;
-void ai_play_handler(struct position *p)
-{
-	//puts("---- checking");
-	//printf("ai_best = %p\n", ai_best);
-	p = make_node(p);
-	//dump_position(p);
-	if (p->n_children == 0) {
-		// found winning move
-		ai_best = p;
-		return;
-	}
-
-	if (p->n_children > 0) {
-		// found undefined move 
-		if (!ai_best || ai_best->n_children != 0)
-			ai_best = p;
-		return;
-	}
-	if (!ai_best)
-		ai_best = p;
-}
-
-void ai_play(struct position *p)
-{
-	/*struct position *n = find_node(p);
-	if (!n)
-		puts("unknown node");
-	else
-		printf("n_children = %d\n", n->n_children);*/
-	struct position p_;
-	memcpy(p_.white, p->black, PIECES);
-	memcpy(p_.black, p->white, PIECES);
-	ai_best = NULL;
-	foreach_child(&p_, ai_play_handler, false);
-	if (!ai_best) {
-		puts("I failed.");
-		exit(-1);
-	}
-	if (ai_best->n_children == 0)
-		puts("I think I'm winning.");
-	if (ai_best->n_children == -1)
-		puts("I think I've lost.");
-	if (ai_best->n_children > 0)
-		puts("I am confused.");
-
-	memcpy(p->black, ai_best->black, PIECES);
-	//printf("ai_best->n_children = %d\n", ai_best->n_children);
 }
 
 static void make_random_board(struct position *p)

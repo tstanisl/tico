@@ -1,5 +1,6 @@
 TARGET  := tico
 SRCS    := \
+	ai_perfect.c \
 	play.c\
 	position.c \
 	tico.c
