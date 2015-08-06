@@ -34,7 +34,7 @@ void play(struct player_fo *white, struct player_fo *black)
 	struct position p;
 	make_random_board(&p);
 
-	for (;;) {
+	for (int rounds = 0; rounds < 32; ++rounds) {
 		int ret;
 
 		ret = white->cb(white, &p);
@@ -61,6 +61,7 @@ void play(struct player_fo *white, struct player_fo *black)
 			return;
 		}
 	}
+	puts("Too many rounds. Ended in draw.");
 }
 
 static int user_player_cb(struct player_fo *unused, struct position *p)
