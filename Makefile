@@ -1,9 +1,11 @@
 TARGET  := tico
-SRCS    := position.c \
+SRCS    := \
+	play.c\
+	position.c \
 	tico.c
 
 CC = gcc
-CFLAGS = -std=gnu99 -O0 -Wall -pedantic -g3
+CFLAGS = -std=gnu99 -O3 -Wall -pedantic -g3
 LDFLAGS = -rdynamic
 LIBS    = 
 

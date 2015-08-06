@@ -18,5 +18,7 @@ void dump_position(struct position *p);
 int count_children(struct position *p);
 typedef void (*foreach_child_cb)(struct position *);
 void foreach_child(struct position *p, foreach_child_cb cb, bool reverse);
+void gen_taken(bool taken[SIZE * SIZE], struct position *p);
+void sort4(uint8_t A[PIECES]);
 
 #endif
