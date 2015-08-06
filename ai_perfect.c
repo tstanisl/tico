@@ -237,7 +237,7 @@ struct player_fo *ai_perfect_init(void)
 	positions = malloc(POOLSIZE * sizeof positions[0]);
 	if (positions == NULL)
 		return NULL;
-	struct position p = {};
+	struct position p = { .n_children = 0 };
 	gen_terminals_black(&p, 0);
 	dump_stat();
 	int n_terminals = n_positions;
