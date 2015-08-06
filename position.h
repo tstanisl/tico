@@ -22,5 +22,6 @@ void foreach_child(struct position *p, foreach_child_cb cb, bool reverse);
 void gen_taken(bool taken[SIZE * SIZE], struct position *p);
 void sort4(uint8_t A[PIECES]);
 void swap_position(struct position *p);
+void assert_position(struct position *p);
 
 #endif

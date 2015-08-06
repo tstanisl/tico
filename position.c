@@ -192,3 +192,19 @@ void swap_position(struct position *p)
 	memcpy(p->white, p->black, PIECES);
 	memcpy(p->black, tmp, PIECES);
 }
+
+void assert_position(struct position *p)
+{
+	for (int i = 1; i < PIECES; ++i)
+		if (p->white[i - 1] >= p->white[i])
+			abort();
+	for (int i = 1; i < PIECES; ++i)
+		if (p->black[i - 1] >= p->black[i])
+			abort();
+	for (int i = 0; i < PIECES; ++i)
+		if (p->white[i] >= SIZE * SIZE)
+			abort();
+	for (int i = 0; i < PIECES; ++i)
+		if (p->black[i] >= SIZE * SIZE)
+			abort();
+}
