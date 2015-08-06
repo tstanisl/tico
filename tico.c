@@ -1,3 +1,4 @@
+#include "ai_perfect.h"
 #include "play.h"
 #include "position.h"
 
@@ -11,8 +12,13 @@ int main()
 		if (positions[i].n_children <= 0)
 			dump_position(&positions[i]);
 #endif
+	struct player_fo *ai_perfect = ai_perfect_init();
+	if (!ai_perfect) {
+		fprintf(stderr, "ai_perfect_init() failed\n");
+		return -1;
+	}
 	for (;;)
-		play(&user_player, &user_player);
+		play(ai_perfect, &user_player);
 	return 0;
 }
 
