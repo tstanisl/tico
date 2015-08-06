@@ -1,5 +1,6 @@
 TARGET  := tico
-SRCS    := tico.c
+SRCS    := position.c \
+	tico.c
 
 CC = gcc
 CFLAGS = -std=gnu99 -O0 -Wall -pedantic -g3
