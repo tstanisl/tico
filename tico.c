@@ -443,6 +443,9 @@ void play()
 			    !taken[v_])
 				break;
 			puts("Invalid move!");
+			clearerr(stdin);
+			if (scanf("%*[^\n]") < 0)
+				return;
 		}
 		for (int i = 0; i < PIECES; ++i)
 			if (p.white[i] == v)
