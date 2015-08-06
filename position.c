@@ -181,3 +181,10 @@ void dump_position(struct position *p)
 	putchar('\n');
 }
 
+void swap_position(struct position *p)
+{
+	uint8_t tmp[PIECES];
+	memcpy(tmp, p->white, PIECES);
+	memcpy(p->white, p->black, PIECES);
+	memcpy(p->black, tmp, PIECES);
+}
