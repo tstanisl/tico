@@ -22,7 +22,6 @@ void randperm(uint8_t P[], int N, int M)
 
 static void make_random_board(struct position *p)
 {
-	srand(time(0));
 	uint8_t perm[2 * PIECES];
 	randperm(perm, 2 * PIECES, SIZE * SIZE);
 	memcpy(p->white, perm, PIECES);

@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 int main()
 {
@@ -17,6 +18,7 @@ int main()
 		fprintf(stderr, "ai_perfect_init() failed\n");
 		return -1;
 	}
+	srand(time(0));
 	for (;;)
 		play(ai_perfect, &user_player);
 	return 0;
