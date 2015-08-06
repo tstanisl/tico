@@ -37,6 +37,7 @@ void play(struct player_fo *white, struct player_fo *black)
 	for (int rounds = 0; rounds < 32; ++rounds) {
 		int ret;
 
+		dump_position(&p);
 		ret = white->cb(white, &p);
 		if (ret != 0)
 			return;
@@ -47,6 +48,7 @@ void play(struct player_fo *white, struct player_fo *black)
 			return;
 		}
 
+		dump_position(&p);
 		swap_position(&p);
 
 		ret = black->cb(black, &p);
@@ -72,7 +74,6 @@ static int user_player_cb(struct player_fo *unused, struct position *p)
 	gen_taken(taken, p);
 	int v, v_;
 	for (;;) {
-		dump_position(p);
 		puts("Your move? [x y d]");
 		int x, y, d, ret;
 		ret = scanf("%d %d %d", &x, &y, &d);
