@@ -6,10 +6,17 @@
 #define PIECES 4
 #define SIZE 5
 
+enum position_state {
+	PS_UNKNOWN = 0,
+	PS_WIN = 1,
+	PS_LOSE = 2,
+};
+
 struct position {
 	uint8_t white[PIECES];
 	uint8_t black[PIECES];
-	int n_children;
+	uint8_t state;
+	uint8_t n_children;
 	struct position *next;
 };
 

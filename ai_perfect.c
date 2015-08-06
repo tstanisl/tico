@@ -76,6 +76,7 @@ struct position *make_node(struct position *p)
 	memcpy(n, p, sizeof *p);
 	n->next = *head;
 	*head = n;
+	n->state = PS_UNKNOWN;
 	n->n_children = count_children(n);
 	/*if (is_terminal(n->black))
 		make_lose_node(n);*/
@@ -105,15 +106,16 @@ void ai_play_handler(struct position *p)
 	//printf("ai_best = %p\n", ai_best);
 	p = make_node(p);
 	//dump_position(p);
-	if (p->n_children == 0) {
+	if (p->state == PS_LOSE) {
 		// found winning move
 		ai_best = p;
 		return;
 	}
 
-	if (p->n_children > 0) {
+	if (p->state == PS_UNKNOWN) {
 		// found undefined move 
-		if (!ai_best || ai_best->n_children != 0)
+		// accept it if no winning moves were found
+		if (!ai_best || ai_best->state != PS_LOSE)
 			ai_best = p;
 		return;
 	}
@@ -135,11 +137,11 @@ int ai_perfect_player_cb(struct player_fo *fo, struct position *p)
 		puts("I failed.");
 		return -1;
 	}
-	if (ai_best->n_children == 0)
+	if (ai_best->state == PS_LOSE)
 		puts("I think I'm winning.");
-	if (ai_best->n_children == -1)
+	if (ai_best->state == PS_WIN)
 		puts("I think I've lost.");
-	if (ai_best->n_children > 0)
+	if (ai_best->state == PS_UNKNOWN)
 		puts("I am confused.");
 
 	memcpy(p->white, ai_best->black, PIECES);
@@ -152,7 +154,7 @@ void make_lose_node(struct position *n);
 void make_win_node_helper(struct position *child)
 {
 	child = make_node(child);
-	if (child->n_children <= 0)
+	if (child->state != PS_UNKNOWN)
 		return;
 	child->n_children--;
 	if (child->n_children == 0)
@@ -162,7 +164,7 @@ void make_win_node_helper(struct position *child)
 void make_win_node(struct position *n)
 {
 	++n_win;
-	n->n_children = -1;
+	n->state = PS_WIN;
 	//puts("-- winner ---"); dump_position(n);
 	foreach_child(n, make_win_node_helper, true);
 }
@@ -170,14 +172,14 @@ void make_win_node(struct position *n)
 void make_lose_node_helper(struct position *child)
 {
 	child = make_node(child);
-	if (child->n_children > 0)
+	if (child->state == PS_UNKNOWN)
 		make_win_node(child);
 }
 
 void make_lose_node(struct position *n)
 {
 	++n_lose;
-	n->n_children = 0;
+	n->state = PS_LOSE;
 	//puts("-- loser ---"); dump_position(n);
 	foreach_child(n, make_lose_node_helper, true);
 }
@@ -192,7 +194,7 @@ void gen_terminals_white(struct position *p, int piece)
 			//puts("term"); dump_position(p);
 			++n_terminal;
 			struct position *n = make_node(p);
-			n->n_children = 0;
+			n->state = PS_LOSE;
 			//make_lose_node(n);
 		}
 		return;
@@ -237,7 +239,7 @@ struct player_fo *ai_perfect_init(void)
 	positions = malloc(POOLSIZE * sizeof positions[0]);
 	if (positions == NULL)
 		return NULL;
-	struct position p = { .n_children = 0 };
+	struct position p = { .state = PS_UNKNOWN };
 	gen_terminals_black(&p, 0);
 	dump_stat();
 	int n_terminals = n_positions;

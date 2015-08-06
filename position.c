@@ -155,12 +155,7 @@ void dump_position_short(struct position *p)
 	putchar(' ');
 	for (int i = 0; i < PIECES; ++i)
 		printf("%d ", p->black[i]);
-	if (p->n_children == 0)
-		putchar('L');
-	else if (p->n_children == -1)
-		putchar('W');
-	else
-		putchar('U');
+	putchar("UWL"[p->state]);
 	putchar('\n');
 }
 
