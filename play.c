@@ -116,4 +116,48 @@ void play(struct player_fo *white, struct player_fo *black)
 	}
 }
 
+static int user_player_cb(struct player_fo *unused, struct position *p)
+{
+	(void)unused;
 
+	bool taken[SIZE * SIZE];
+	gen_taken(taken, p);
+	int v, v_;
+	for (;;) {
+		dump_position(p);
+		puts("Your move? [x y d]");
+		int x, y, d, ret;
+		ret = scanf("%d %d %d", &x, &y, &d);
+		v = x + SIZE * y;
+		int ok = 0;
+		for (int i = 0; i < PIECES; ++i)
+			if (p->white[i] == v)
+				ok = 1;
+		int x_ = x, y_ = y;
+		if (d == 0) x_ += 1;
+		if (d == 1) y_ += 1;
+		if (d == 2) x_ -= 1;
+		if (d == 3) y_ -= 1;
+		v_ = x_ + SIZE * y_;
+		printf("(%d,%d)->(%d,%d)\n",x,y,x_,y_);
+		if (ret == 3 &&
+		    x >= 0 && x < SIZE &&
+		    y >= 0 && y < SIZE &&
+		    ok &&
+		    x_ >= 0 && x_ < SIZE &&
+		    y_ >= 0 && y_ < SIZE &&
+		    !taken[v_])
+			break;
+		puts("Invalid move!");
+		clearerr(stdin);
+		if (scanf("%*[^\n]") < 0)
+			return -1;
+	}
+	for (int i = 0; i < PIECES; ++i)
+		if (p->white[i] == v)
+			p->white[i] = v_;
+	sort4(p->white);
+	return 0;
+}
+
+struct player_fo user_player = { .cb = user_player_cb };
