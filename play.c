@@ -51,7 +51,7 @@ void ai_play(struct position *p)
 		puts("unknown node");
 	else
 		printf("n_children = %d\n", n->n_children);*/
-	struct position p_ = {};
+	struct position p_;
 	memcpy(p_.white, p->black, PIECES);
 	memcpy(p_.black, p->white, PIECES);
 	ai_best = NULL;
