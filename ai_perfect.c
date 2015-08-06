@@ -88,6 +88,16 @@ struct position *make_node(struct position *p)
 	return n;
 }
 
+struct position *find_node(struct position *p)
+{
+	uint32_t hash = hash_position(p);
+	struct position **head = &htab[hash & (HSIZE - 1)];
+	for (struct position *n = *head; n; n = n->next)
+		if (equal_position(p, n))
+			return n;
+	return NULL;
+}
+
 struct position *ai_best;
 void ai_play_handler(struct position *p)
 {
@@ -170,16 +180,6 @@ void make_lose_node(struct position *n)
 	n->n_children = 0;
 	//puts("-- loser ---"); dump_position(n);
 	foreach_child(n, make_lose_node_helper, true);
-}
-
-struct position *find_node(struct position *p)
-{
-	uint32_t hash = hash_position(p);
-	struct position **head = &htab[hash & (HSIZE - 1)];
-	for (struct position *n = *head; n; n = n->next)
-		if (equal_position(p, n))
-			return n;
-	return NULL;
 }
 
 void gen_terminals_white(struct position *p, int piece)
