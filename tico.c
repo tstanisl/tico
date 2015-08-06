@@ -8,11 +8,8 @@
 #include <string.h>
 #include <time.h>
 
-#define PIECES 4
-#define SIZE 5
-
 #define HSIZE (1 << 27)
-#define POOLSIZE (HSIZE)
+#define POOLSIZE (HSIZE - HSIZE / 4)
 
 struct position *htab[HSIZE];
 struct position *positions;
