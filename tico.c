@@ -104,6 +104,9 @@ bool is_terminal(uint8_t A[PIECES])
 	return false;
 }
 
+void dump_position(struct position *p);
+void dump_stat(void);
+
 int count_children(struct position *p)
 {
 	bool taken[SIZE * SIZE];
@@ -140,41 +143,49 @@ void gen_taken(bool taken[SIZE * SIZE], struct position *p)
 }
 
 typedef void (*foreach_child_cb)(struct position *);
-void foreach_child(struct position *p, foreach_child_cb cb)
+void foreach_child(struct position *p, foreach_child_cb cb, bool reverse)
 {
 	bool taken[SIZE * SIZE];
 	gen_taken(taken, p);
 
+	uint8_t *white, *black;
+	if (reverse) {
+		white = p->black;
+		black = p->white;
+	} else {
+		white = p->white;
+		black = p->black;
+	}
 	struct position child;
-	memcpy(child.black, p->white, sizeof p->white);
+	memcpy(child.white, black, PIECES);
 	for (int i = 0; i < PIECES; ++i) {
-		int v = p->black[i];
+		int v = white[i];
 		int x = v % SIZE;
 		int y = v / SIZE;
 		if (x > 0 && !taken[v - 1]) {
-			memcpy(child.white, p->black, sizeof p->black);
-			child.white[i] = v - 1;
-			sort4(child.white);
+			memcpy(child.black, white, PIECES);
+			child.black[i] = v - 1;
+			sort4(child.black);
 			cb(&child);
 		}
 		if (x + 1 < SIZE && !taken[v + 1]) {
-			memcpy(child.white, p->black, sizeof p->black);
-			child.white[i] = v + 1;
-			sort4(child.white);
+			memcpy(child.black, white, PIECES);
+			child.black[i] = v + 1;
+			sort4(child.black);
 			cb(&child);
 		}
 
 		if (y > 0 && !taken[v - SIZE]) {
-			memcpy(child.white, p->black, sizeof p->black);
-			child.white[i] = v - SIZE;
-			sort4(child.white);
+			memcpy(child.black, white, PIECES);
+			child.black[i] = v - SIZE;
+			sort4(child.black);
 			cb(&child);
 		}
 
 		if (y + 1 < SIZE && !taken[v + SIZE]) {
-			memcpy(child.white, p->black, sizeof p->black);
-			child.white[i] = v + SIZE;
-			sort4(child.white);
+			memcpy(child.black, white, PIECES);
+			child.black[i] = v + SIZE;
+			sort4(child.black);
 			cb(&child);
 		}
 	}
@@ -197,8 +208,8 @@ void make_win_node(struct position *n)
 {
 	++n_win;
 	n->n_children = -1;
-	//puts("-- winner ---"); dump_position(n);
-	foreach_child(n, make_win_node_helper);
+	puts("-- winner ---"); dump_position(n);
+	foreach_child(n, make_win_node_helper, true);
 }
 
 void make_lose_node_helper(struct position *child)
@@ -212,8 +223,8 @@ void make_lose_node(struct position *n)
 {
 	++n_lose;
 	n->n_children = 0;
-	//puts("-- loser ---"); dump_position(n);
-	foreach_child(n, make_lose_node_helper);
+	puts("-- loser ---"); dump_position(n);
+	foreach_child(n, make_lose_node_helper, true);
 }
 
 static bool equal_position(struct position *p, struct position *n)
@@ -252,12 +263,14 @@ struct position *make_node(struct position *p)
 	n->next = *head;
 	*head = n;
 	n->n_children = count_children(n);
-	if (is_terminal(n->black))
-		make_lose_node(n);
+	/*if (is_terminal(n->black))
+		make_lose_node(n);*/
 	/*if (terminal)
 		n->n_children = 0;
 	else
 		n->n_children = count_children(n);*/
+	if (n_positions % 10000 == 0)
+		dump_stat();
 	return n;
 }
 
@@ -307,13 +320,14 @@ void dump_stat(void)
 void gen_terminals_white(struct position *p, int piece)
 {
 	if (piece == PIECES) {
-		static int cnt = 0;
+		/*static int cnt = 0;
 		if (++cnt % 10000 == 0)
-			dump_stat();
+			dump_stat();*/
 		if (!is_terminal(p->white)) {
-			//dump_position(p);
+			//puts("term"); dump_position(p);
 			++n_terminal;
 			struct position *n = make_node(p);
+			n->n_children = 0;
 			//make_lose_node(n);
 		}
 		return;
@@ -370,7 +384,7 @@ void ai_play_handler(struct position *p)
 	//printf("ai_best = %p\n", ai_best);
 	p = make_node(p);
 	dump_position(p);
-	if (p->n_children == -1) {
+	if (p->n_children == 0) {
 		// found winning move
 		ai_best = p;
 		return;
@@ -378,7 +392,7 @@ void ai_play_handler(struct position *p)
 
 	if (p->n_children > 0) {
 		// found undefined move 
-		if (!ai_best || ai_best->n_children != -1)
+		if (!ai_best || ai_best->n_children != 0)
 			ai_best = p;
 		return;
 	}
@@ -392,8 +406,11 @@ void ai_play(struct position *p)
 		puts("unknown node");
 	else
 		printf("n_children = %d\n", n->n_children);
+	struct position p_ = {};
+	memcpy(p_.white, p->black, PIECES);
+	memcpy(p_.black, p->white, PIECES);
 	ai_best = NULL;
-	foreach_child(p, ai_play_handler);
+	foreach_child(&p_, ai_play_handler, false);
 	if (!ai_best) {
 		puts("I failed.");
 		exit(-1);
@@ -405,7 +422,7 @@ void ai_play(struct position *p)
 	if (ai_best->n_children > 0)
 		puts("I am confused.");
 
-	memcpy(p->black, ai_best->white, PIECES);
+	memcpy(p->black, ai_best->black, PIECES);
 	printf("ai_best->n_children = %d\n", ai_best->n_children);
 }
 
@@ -471,6 +488,9 @@ int main()
 	struct position p = {};
 	gen_terminals_black(&p, 0);
 	dump_stat();
+	int n_terminals = n_positions;
+	for (int i = 0; i < n_terminals; ++i)
+		make_lose_node(&positions[i]);
 #if 0
 	for (int i = 0; i < n_positions; ++i)
 		if (positions[i].n_children <= 0)
