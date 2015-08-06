@@ -15,6 +15,7 @@ struct position {
 
 bool is_terminal(uint8_t A[PIECES]);
 void dump_position(struct position *p);
+void dump_position_short(struct position *p);
 int count_children(struct position *p);
 typedef void (*foreach_child_cb)(struct position *);
 void foreach_child(struct position *p, foreach_child_cb cb, bool reverse);

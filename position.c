@@ -148,17 +148,8 @@ void foreach_child(struct position *p, foreach_child_cb cb, bool reverse)
 	}
 }
 
-void dump_position(struct position *p)
+void dump_position_short(struct position *p)
 {
-	char dump[SIZE * SIZE];
-	memset(dump, '.', sizeof dump);
-
-	for (int i = 0; i < PIECES; ++i)
-		dump[p->white[i]] = '@';
-
-	for (int i = 0; i < PIECES; ++i)
-		dump[p->black[i]] = 'O';
-
 	for (int i = 0; i < PIECES; ++i)
 		printf("%d ", p->white[i]);
 	putchar(' ');
@@ -171,7 +162,20 @@ void dump_position(struct position *p)
 	else
 		putchar('U');
 	putchar('\n');
-	//printf("| %d\n", count_children(p));
+}
+
+void dump_position(struct position *p)
+{
+	dump_position_short(p);
+
+	char dump[SIZE * SIZE];
+	memset(dump, '.', sizeof dump);
+
+	for (int i = 0; i < PIECES; ++i)
+		dump[p->white[i]] = '@';
+
+	for (int i = 0; i < PIECES; ++i)
+		dump[p->black[i]] = 'O';
 
 	for (int i = 0; i < SIZE * SIZE; ++i) {
 		putchar(dump[i]);
