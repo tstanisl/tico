@@ -90,7 +90,6 @@ static int user_player_cb(struct player_fo *unused, struct position *p)
 		if (d == 2) x_ -= 1;
 		if (d == 3) y_ -= 1;
 		v_ = x_ + SIZE * y_;
-		printf("(%d,%d)->(%d,%d)\n",x,y,x_,y_);
 		if (ret == 3 &&
 		    x >= 0 && x < SIZE &&
 		    y >= 0 && y < SIZE &&
