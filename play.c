@@ -1,3 +1,4 @@
+#include "play.h"
 #include "position.h"
 
 #include <stdbool.h>
@@ -71,58 +72,45 @@ void ai_play(struct position *p)
 	//printf("ai_best->n_children = %d\n", ai_best->n_children);
 }
 
-void play(void)
+static void make_random_board(struct position *p)
 {
-	puts("-------------- NEW GAME -------------");
 	srand(time(0));
 	uint8_t perm[2 * PIECES];
 	randperm(perm, 2 * PIECES, SIZE * SIZE);
-	struct position p = {};
-	memcpy(p.white, perm, PIECES);
-	memcpy(p.black, perm + PIECES, PIECES);
-	dump_position(&p);
+	memcpy(p->white, perm, PIECES);
+	memcpy(p->black, perm + PIECES, PIECES);
+}
+
+void play(struct player_fo *white, struct player_fo *black)
+{
+	puts("-------------- NEW GAME -------------");
+	struct position p;
+	make_random_board(&p);
+
 	for (;;) {
-		bool taken[SIZE * SIZE];
-		gen_taken(taken, &p);
-		int v, v_;
-		for (;;) {
-			puts("Your move? [x y d]");
-			int x, y, d, ret;
-			ret = scanf("%d %d %d", &x, &y, &d);
-			v = x + SIZE * y;
-			int x_ = x, y_ = y;
-			if (d == 0) x_ += 1;
-			if (d == 1) y_ += 1;
-			if (d == 2) x_ -= 1;
-			if (d == 3) y_ -= 1;
-			v_ = x_ + SIZE * y_;
-			printf("(%d,%d)->(%d,%d)\n",x,y,x_,y_);
-			if (ret == 3 &&
-			    x >= 0 && x < SIZE &&
-			    y >= 0 && y < SIZE &&
-			    taken[v] &&
-			    x_ >= 0 && x_ < SIZE &&
-			    y_ >= 0 && y_ < SIZE &&
-			    !taken[v_])
-				break;
-			puts("Invalid move!");
-			clearerr(stdin);
-			if (scanf("%*[^\n]") < 0)
-				return;
-		}
-		for (int i = 0; i < PIECES; ++i)
-			if (p.white[i] == v)
-				p.white[i] = v_;
-		sort4(p.white);
-		dump_position(&p);
+		int ret;
+
+		ret = white->cb(white, &p);
+		if (ret != 0)
+			return;
+
 		if (is_terminal(p.white)) {
-			puts("You won!");
+			dump_position(&p);
+			puts("White won!");
 			return;
 		}
-		ai_play(&p);
-		dump_position(&p);
+
+		swap_position(&p);
+
+		ret = black->cb(black, &p);
+		if (ret != 0)
+			return;
+
+		swap_position(&p);
+
 		if (is_terminal(p.black)) {
-			puts("I won!");
+			dump_position(&p);
+			puts("Black won!");
 			return;
 		}
 	}

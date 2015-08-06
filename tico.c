@@ -199,8 +199,6 @@ int main()
 		if (positions[i].n_children <= 0)
 			dump_position(&positions[i]);
 #endif
-	for (;;)
-		play();
 	return 0;
 }
 
