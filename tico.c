@@ -6,7 +6,7 @@
 #include <time.h>
 
 #define PIECES 4
-#define SIZE 4
+#define SIZE 5
 
 #define SWAP(type,a,b) \
 	do { type __tmp = (a); (a) = (b); (b) = __tmp; } while (0)
@@ -149,43 +149,48 @@ void foreach_child(struct position *p, foreach_child_cb cb, bool reverse)
 	gen_taken(taken, p);
 
 	uint8_t *white, *black;
+	uint8_t *child_white, *child_black;
+	struct position child;
 	if (reverse) {
 		white = p->black;
 		black = p->white;
+		child_white = child.black;
+		child_black = child.white;
 	} else {
 		white = p->white;
 		black = p->black;
+		child_white = child.white;
+		child_black = child.black;
 	}
-	struct position child;
-	memcpy(child.white, black, PIECES);
+	memcpy(child_white, black, PIECES);
 	for (int i = 0; i < PIECES; ++i) {
 		int v = white[i];
 		int x = v % SIZE;
 		int y = v / SIZE;
 		if (x > 0 && !taken[v - 1]) {
-			memcpy(child.black, white, PIECES);
-			child.black[i] = v - 1;
-			sort4(child.black);
+			memcpy(child_black, white, PIECES);
+			child_black[i] = v - 1;
+			sort4(child_black);
 			cb(&child);
 		}
 		if (x + 1 < SIZE && !taken[v + 1]) {
-			memcpy(child.black, white, PIECES);
-			child.black[i] = v + 1;
-			sort4(child.black);
+			memcpy(child_black, white, PIECES);
+			child_black[i] = v + 1;
+			sort4(child_black);
 			cb(&child);
 		}
 
 		if (y > 0 && !taken[v - SIZE]) {
-			memcpy(child.black, white, PIECES);
-			child.black[i] = v - SIZE;
-			sort4(child.black);
+			memcpy(child_black, white, PIECES);
+			child_black[i] = v - SIZE;
+			sort4(child_black);
 			cb(&child);
 		}
 
 		if (y + 1 < SIZE && !taken[v + SIZE]) {
-			memcpy(child.black, white, PIECES);
-			child.black[i] = v + SIZE;
-			sort4(child.black);
+			memcpy(child_black, white, PIECES);
+			child_black[i] = v + SIZE;
+			sort4(child_black);
 			cb(&child);
 		}
 	}
@@ -208,7 +213,7 @@ void make_win_node(struct position *n)
 {
 	++n_win;
 	n->n_children = -1;
-	puts("-- winner ---"); dump_position(n);
+	//puts("-- winner ---"); dump_position(n);
 	foreach_child(n, make_win_node_helper, true);
 }
 
@@ -223,7 +228,7 @@ void make_lose_node(struct position *n)
 {
 	++n_lose;
 	n->n_children = 0;
-	puts("-- loser ---"); dump_position(n);
+	//puts("-- loser ---"); dump_position(n);
 	foreach_child(n, make_lose_node_helper, true);
 }
 
@@ -269,7 +274,7 @@ struct position *make_node(struct position *p)
 		n->n_children = 0;
 	else
 		n->n_children = count_children(n);*/
-	if (n_positions % 10000 == 0)
+	if (n_positions % 1000000 == 0)
 		dump_stat();
 	return n;
 }
@@ -380,10 +385,10 @@ void randperm(uint8_t P[], int N, int M)
 struct position *ai_best;
 void ai_play_handler(struct position *p)
 {
-	puts("---- checking");
+	//puts("---- checking");
 	//printf("ai_best = %p\n", ai_best);
 	p = make_node(p);
-	dump_position(p);
+	//dump_position(p);
 	if (p->n_children == 0) {
 		// found winning move
 		ai_best = p;
@@ -396,16 +401,17 @@ void ai_play_handler(struct position *p)
 			ai_best = p;
 		return;
 	}
-	ai_best = p;
+	if (!ai_best)
+		ai_best = p;
 }
 
 void ai_play(struct position *p)
 {
-	struct position *n = find_node(p);
+	/*struct position *n = find_node(p);
 	if (!n)
 		puts("unknown node");
 	else
-		printf("n_children = %d\n", n->n_children);
+		printf("n_children = %d\n", n->n_children);*/
 	struct position p_ = {};
 	memcpy(p_.white, p->black, PIECES);
 	memcpy(p_.black, p->white, PIECES);
@@ -415,19 +421,20 @@ void ai_play(struct position *p)
 		puts("I failed.");
 		exit(-1);
 	}
-	if (ai_best->n_children == -1)
-		puts("I think I'm winning.");
 	if (ai_best->n_children == 0)
+		puts("I think I'm winning.");
+	if (ai_best->n_children == -1)
 		puts("I think I've lost.");
 	if (ai_best->n_children > 0)
 		puts("I am confused.");
 
 	memcpy(p->black, ai_best->black, PIECES);
-	printf("ai_best->n_children = %d\n", ai_best->n_children);
+	//printf("ai_best->n_children = %d\n", ai_best->n_children);
 }
 
 void play()
 {
+	puts("-------------- NEW GAME -------------");
 	srand(time(0));
 	uint8_t perm[2 * PIECES];
 	randperm(perm, 2 * PIECES, SIZE * SIZE);
@@ -496,7 +503,8 @@ int main()
 		if (positions[i].n_children <= 0)
 			dump_position(&positions[i]);
 #endif
-	play();
+	for (;;)
+		play();
 	return 0;
 }
 
