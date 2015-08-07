@@ -137,15 +137,16 @@ int is_better_position(struct position *a, struct position *b)
 	}
 }
 
-struct position *ai_best;
+struct position ai_best;
 void ai_play_handler(struct position *p)
 {
 	//puts("---- checking");
 	//printf("ai_best = %p\n", ai_best);
-	p = make_node(p);
+	p = make_node_tmp(p);
+
 	//dump_position_short(p);
-	if (is_better_position(ai_best, p))
-		ai_best = p;
+	if (is_better_position(&ai_best, p))
+		ai_best = *p;
 }
 
 int ai_perfect_player_cb(struct player_fo *fo, struct position *p)
@@ -156,20 +157,21 @@ int ai_perfect_player_cb(struct player_fo *fo, struct position *p)
 		puts("unknown node");
 	else
 		printf("n_children = %d\n", n->n_children);*/
-	ai_best = NULL;
+	ai_best.state = PS_WIN;
+	ai_best.terminal_distance = INT_MIN;
 	foreach_child(p, ai_play_handler, false);
-	if (!ai_best) {
+	if (ai_best.terminal_distance == INT_MIN) {
 		puts("I failed.");
 		return -1;
 	}
-	if (ai_best->state == PS_LOSE)
+	if (ai_best.state == PS_LOSE)
 		puts("I think I'm winning.");
-	if (ai_best->state == PS_WIN)
+	if (ai_best.state == PS_WIN)
 		puts("I think I've lost.");
-	if (ai_best->state == PS_UNKNOWN)
+	if (ai_best.state == PS_UNKNOWN)
 		puts("I am confused.");
 
-	memcpy(p->white, ai_best->black, PIECES);
+	memcpy(p->white, ai_best.black, PIECES);
 	//dump_position_short(ai_best);
 	//printf("ai_best->n_children = %d\n", ai_best->n_children);
 	return 0;
