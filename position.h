@@ -17,6 +17,7 @@ struct position {
 	uint8_t black[PIECES];
 	uint8_t state;
 	uint8_t n_children;
+	int terminal_distance;
 	struct position *next;
 };
 
