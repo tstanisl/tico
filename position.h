@@ -5,6 +5,7 @@
 
 #define PIECES 4
 #define SIZE 5
+#define EMPTY (SIZE * SIZE + 1)
 
 enum position_state {
 	PS_UNKNOWN = 0,
@@ -32,5 +33,9 @@ void gen_taken(bool taken[SIZE * SIZE], struct position *p);
 void sort4(uint8_t A[PIECES]);
 void swap_position(struct position *p);
 void assert_position(struct position *p);
+static inline bool is_phase1_position(struct position *p)
+{
+	return p->white[PIECES - 1] == EMPTY;
+}
 
 #endif
