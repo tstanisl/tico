@@ -20,7 +20,7 @@ void randperm(uint8_t P[], int N, int M)
 	}
 }
 
-static void make_random_board(struct position *p)
+void make_random_board(struct position *p)
 {
 	do {
 		uint8_t perm[2 * PIECES];
@@ -32,11 +32,18 @@ static void make_random_board(struct position *p)
 	} while (is_terminal(p->white) || is_terminal(p->black));
 }
 
+void make_empty_board(struct position *p)
+{
+	for (int i = 0; i < PIECES; ++i)
+		p->white[i] = p->black[i] = EMPTY;
+}
+
 void play(struct player_fo *white, struct player_fo *black)
 {
 	puts("-------------- NEW GAME -------------");
 	struct position p;
-	make_random_board(&p);
+	//make_random_board(&p);
+	make_empty_board(&p);
 
 	for (int rounds = 0; rounds < 32; ++rounds) {
 		int ret;
