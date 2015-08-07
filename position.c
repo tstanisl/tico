@@ -6,6 +6,10 @@
 
 bool is_terminal(uint8_t A[PIECES])
 {
+	// phase I position is never a terminal
+	if (A[PIECES - 1] == EMPTY)
+		return false;
+
 	// assume A is sorted
 	// column check
 	if (A[1] - A[0] == SIZE &&
@@ -46,8 +50,24 @@ bool is_terminal(uint8_t A[PIECES])
 	return false;
 }
 
+int count_empty(struct position *p)
+{
+	int n_empty = 0;
+	for (int i = 0; i < PIECES; ++i) {
+		if (p->white[i] == EMPTY)
+			++n_empty;
+		if (p->black[i] == EMPTY)
+			++n_empty;
+	}
+	return n_empty;
+}
+
 int count_children(struct position *p)
 {
+	int n_empty = count_empty(p);
+	if (n_empty)
+		return SIZE * SIZE - (2 * PIECES - n_empty);
+
 	// terminal have no children
 	if (is_terminal(p->black))
 		return 0;
@@ -79,8 +99,10 @@ void gen_taken(bool taken[SIZE * SIZE], struct position *p)
 {
 	memset(taken, 0, SIZE * SIZE * sizeof taken[0]);
 	for (int i = 0; i < PIECES; ++i) {
-		taken[p->white[i]] = true;
-		taken[p->black[i]] = true;
+		if (p->white[i] != EMPTY)
+			taken[p->white[i]] = true;
+		if (p->black[i] != EMPTY)
+			taken[p->black[i]] = true;
 	}
 }
 
@@ -98,8 +120,47 @@ void sort4(uint8_t A[PIECES])
 #undef SORT2
 }
 
+void foreach_child_phase1(struct position *p, foreach_child_cb cb)
+{
+	bool taken[SIZE * SIZE];
+	gen_taken(taken, p);
+
+	struct position child;
+	memcpy(child.white, p->black, PIECES);
+	for (int i = 0; i < SIZE * SIZE; ++i) {
+		if (taken[i])
+			continue;
+		memcpy(child.black, p->white, PIECES);
+		child.black[PIECES - 1] = i;
+		sort4(child.black);
+		cb(&child);
+	}
+}
+
+void foreach_child_phase1_reverse(struct position *p, foreach_child_cb cb)
+{
+	struct position child;
+	memcpy(child.black, p->white, PIECES);
+	for (int i = 0; i < PIECES; ++i) {
+		if (p->black[i] == EMPTY)
+			return;
+		memcpy(child.white, p->black, PIECES);
+		child.white[i] = EMPTY;
+		sort4(child.white);
+		cb(&child);
+	}
+}
+
 void foreach_child(struct position *p, foreach_child_cb cb, bool reverse)
 {
+	if (is_phase1_position(p)) {
+		if (reverse)
+			foreach_child_phase1_reverse(p, cb);
+		else
+			foreach_child_phase1(p, cb);
+		return;
+	}
+
 	bool taken[SIZE * SIZE];
 	gen_taken(taken, p);
 
@@ -148,6 +209,13 @@ void foreach_child(struct position *p, foreach_child_cb cb, bool reverse)
 			sort4(child_black);
 			cb(&child);
 		}
+
+		if (reverse) { // checking phase 1 move
+			memcpy(child_black, white, PIECES);
+			child_black[i] = EMPTY;
+			sort4(child_black);
+			cb(&child);
+		}
 	}
 }
 
@@ -169,10 +237,12 @@ void dump_position(struct position *p)
 	memset(dump, '.', sizeof dump);
 
 	for (int i = 0; i < PIECES; ++i)
-		dump[p->white[i]] = '@';
+		if (p->white[i] != EMPTY)
+			dump[p->white[i]] = '@';
 
 	for (int i = 0; i < PIECES; ++i)
-		dump[p->black[i]] = 'O';
+		if (p->white[i] != EMPTY)
+			dump[p->black[i]] = 'O';
 
 	for (int i = 0; i < SIZE * SIZE; ++i) {
 		putchar(dump[i]);
