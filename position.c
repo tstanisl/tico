@@ -158,7 +158,7 @@ void dump_position_short(struct position *p)
 	putchar(' ');
 	for (int i = 0; i < PIECES; ++i)
 		printf("%d ", p->black[i]);
-	printf("%c d=%d\n", "UWL"[p->state], p->terminal_distance);
+	printf("%c d=%d\n", "UWLQ"[p->state], p->terminal_distance);
 }
 
 void dump_position(struct position *p)

@@ -10,6 +10,7 @@ enum position_state {
 	PS_UNKNOWN = 0,
 	PS_WIN = 1,
 	PS_LOSE = 2,
+	PS_QUEUED = 3,
 };
 
 struct position {
