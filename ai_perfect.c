@@ -162,41 +162,6 @@ int ai_perfect_player_cb(struct player_fo *fo, struct position *p)
 	return 0;
 }
 
-void make_lose_node(struct position *n);
-
-void make_win_node_helper(struct position *child)
-{
-	child = make_node(child);
-	if (child->state != PS_UNKNOWN)
-		return;
-	child->n_children--;
-	if (child->n_children == 0)
-		make_lose_node(child);
-}
-
-void make_win_node(struct position *n)
-{
-	++n_win;
-	n->state = PS_WIN;
-	//puts("-- winner ---"); dump_position(n);
-	foreach_child(n, make_win_node_helper, true);
-}
-
-void make_lose_node_helper(struct position *child)
-{
-	child = make_node(child);
-	if (child->state == PS_UNKNOWN)
-		make_win_node(child);
-}
-
-void make_lose_node(struct position *n)
-{
-	++n_lose;
-	n->state = PS_LOSE;
-	//puts("-- loser ---"); dump_position(n);
-	foreach_child(n, make_lose_node_helper, true);
-}
-
 void gen_terminals_white(struct position *p, int piece)
 {
 	if (piece == PIECES) {
@@ -204,11 +169,8 @@ void gen_terminals_white(struct position *p, int piece)
 		if (++cnt % 10000 == 0)
 			dump_stat();*/
 		if (!is_terminal(p->white)) {
-			//puts("term"); dump_position(p);
 			++n_terminal;
-			struct position *n = make_node(p);
-			n->state = PS_LOSE;
-			//make_lose_node(n);
+			make_node(p);
 		}
 		return;
 	}
@@ -247,29 +209,35 @@ void gen_terminals_black(struct position *p, int piece)
 
 struct player_fo ai_perfect_player = { .cb = ai_perfect_player_cb };
 
-static int update_distance;
-static bool update_happened;
+static struct position **queue;
+static int wr, rd;
 
-void update_distance_lose(struct position *p)
+static void enqueue_node(struct position *p)
 {
-	p = find_node(p);
-	if (!p || p->state != PS_WIN) // unknown node
-		return;
-	if (update_distance > p->terminal_distance)
-		return;
-	update_happened = true;
-	p->terminal_distance = update_distance;
+	if (wr >= POOLSIZE) {
+		fprintf(stderr, "%s: out of memory\n", __func__);
+		exit(-1);
+	}
+	queue[wr++] = p;
+	p->state = PS_QUEUED;
 }
 
-void update_distance_win(struct position *p)
+void make_win_handler(struct position *child)
 {
-	p = find_node(p);
-	if (!p || p->state != PS_LOSE) // unknown node
+	child = make_node(child);
+	if (child->state != PS_UNKNOWN)
 		return;
-	if (p->terminal_distance == 0)
+	child->n_children--;
+	if (child->n_children == 0)
+		enqueue_node(child);
+}
+
+void make_lose_handler(struct position *child)
+{
+	child = make_node(child);
+	if (child->state != PS_UNKNOWN)
 		return;
-	update_happened = true;
-	p->terminal_distance = update_distance;
+	enqueue_node(child);
 }
 
 struct player_fo *ai_perfect_init(void)
@@ -280,31 +248,42 @@ struct player_fo *ai_perfect_init(void)
 	struct position p = { .state = PS_UNKNOWN };
 	gen_terminals_black(&p, 0);
 	dump_stat();
+
+	queue = malloc(POOLSIZE * sizeof queue[0]);
+	if (queue == NULL)
+		return NULL;
+
+	wr = rd = 0;
+
 	int n_terminals = n_positions;
-	for (int i = 0; i < n_terminals; ++i) {
-		make_lose_node(&positions[i]);
-		positions[i].terminal_distance = 0;
-	}
+	for (int i = 0; i < n_terminals; ++i)
+		enqueue_node(&positions[i]);
 
-	int pass = 0;
-	do {
-		update_happened = false;
-		for (int i = 0; i < n_positions; ++i) {
-			struct position *p = &positions[i];
-			if (p->terminal_distance != pass)
-				continue;
-			update_distance = pass + 1;
-
-			if (p->state == PS_LOSE) {
-				foreach_child(p, update_distance_lose, true);
-			} else if (p->state == PS_WIN) {
-				foreach_child(p, update_distance_win, true);
-			}
+	int dist = -1, up_rd = 0;
+	while (rd < wr) {
+		if (rd == up_rd) {
+			++dist;
+			fprintf(stderr, "set %d nodes to distance %d\n",
+				wr - up_rd, dist);
+			up_rd = wr;
 		}
-		fprintf(stderr, "Finished pass %d.\n", pass);
-	} while (update_happened && pass++ < 32);
-	fprintf(stderr, "Finished in %d passed.\n", pass);
 
+		struct position *p = queue[rd++];
+		if (p->state != PS_QUEUED)
+			continue;
+
+		p->terminal_distance = dist;
+		if (p->n_children == 0) { // dealing with lose node
+			++n_lose;
+			p->state = PS_LOSE;
+			foreach_child(p, make_lose_handler, true);
+		} else {
+			++n_win;
+			p->state = PS_WIN;
+			foreach_child(p, make_win_handler, true);
+		}
+	}
+	dump_stat();
 	return &ai_perfect_player;
 }
 
