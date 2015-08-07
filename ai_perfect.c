@@ -101,6 +101,19 @@ struct position *find_node(struct position *p)
 	return NULL;
 }
 
+struct position *make_node_tmp(struct position *p)
+{
+	static struct position tmp;
+	struct position *ret = find_node(p);
+	if (ret)
+		return ret;
+	tmp = *p;
+	tmp.state = PS_UNKNOWN;
+	tmp.n_children = count_children(&tmp);
+	tmp.terminal_distance = INT_MAX;
+	return &tmp;
+}
+
 int is_better_position(struct position *a, struct position *b)
 {
 	if (!a)
