@@ -22,12 +22,14 @@ void randperm(uint8_t P[], int N, int M)
 
 static void make_random_board(struct position *p)
 {
-	uint8_t perm[2 * PIECES];
-	randperm(perm, 2 * PIECES, SIZE * SIZE);
-	memcpy(p->white, perm, PIECES);
-	sort4(p->white);
-	memcpy(p->black, perm + PIECES, PIECES);
-	sort4(p->black);
+	do {
+		uint8_t perm[2 * PIECES];
+		randperm(perm, 2 * PIECES, SIZE * SIZE);
+		memcpy(p->white, perm, PIECES);
+		sort4(p->white);
+		memcpy(p->black, perm + PIECES, PIECES);
+		sort4(p->black);
+	} while (is_terminal(p->white) || is_terminal(p->black));
 }
 
 void play(struct player_fo *white, struct player_fo *black)
