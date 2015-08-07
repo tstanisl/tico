@@ -70,44 +70,87 @@ void play(struct player_fo *white, struct player_fo *black)
 	puts("Too many rounds. Ended in draw.");
 }
 
+static int user_player_phase2(struct position *p, int *pv, int *pv_)
+{
+	bool taken[SIZE * SIZE];
+	gen_taken(taken, p);
+
+	puts("Your move? [x y d]");
+	int x, y, d, ret;
+	ret = scanf("%d %d %d", &x, &y, &d);
+	int v = x + SIZE * y;
+	int ok = 0;
+	for (int i = 0; i < PIECES; ++i)
+		if (p->white[i] == v)
+			ok = 1;
+	int x_ = x, y_ = y;
+	if (d == 0) x_ += 1;
+	if (d == 1) y_ += 1;
+	if (d == 2) x_ -= 1;
+	if (d == 3) y_ -= 1;
+	int v_ = x_ + SIZE * y_;
+	if (ret == 3 &&
+	    x >= 0 && x < SIZE &&
+	    y >= 0 && y < SIZE &&
+	    ok &&
+	    x_ >= 0 && x_ < SIZE &&
+	    y_ >= 0 && y_ < SIZE &&
+	    !taken[v_]) {
+		*pv = v;
+		*pv_ = v_;
+		return 0;
+	}
+	puts("Invalid move!");
+	clearerr(stdin);
+	if (scanf("%*[^\n]") < 0)
+		exit(-1);
+
+	return -1;
+}
+
+static int user_player_phase1(struct position *p, int *pv)
+{
+	bool taken[SIZE * SIZE];
+	gen_taken(taken, p);
+
+	puts("Your move? [x y]");
+	int x, y, ret;
+	ret = scanf("%d %d", &x, &y);
+	int v = x + SIZE * y;
+	if (ret == 2 &&
+	    x >= 0 && x < SIZE &&
+	    y >= 0 && y < SIZE &&
+	    !taken[v]) {
+		*pv = v;
+		return 0;
+	}
+	puts("Invalid move!");
+	clearerr(stdin);
+	if (scanf("%*[^\n]") < 0)
+		exit(-1);
+
+	return -1;
+}
+
 static int user_player_cb(struct player_fo *unused, struct position *p)
 {
 	(void)unused;
 
-	bool taken[SIZE * SIZE];
-	gen_taken(taken, p);
+	int ret = 0;
 	int v, v_;
-	for (;;) {
-		puts("Your move? [x y d]");
-		int x, y, d, ret;
-		ret = scanf("%d %d %d", &x, &y, &d);
-		v = x + SIZE * y;
-		int ok = 0;
-		for (int i = 0; i < PIECES; ++i)
-			if (p->white[i] == v)
-				ok = 1;
-		int x_ = x, y_ = y;
-		if (d == 0) x_ += 1;
-		if (d == 1) y_ += 1;
-		if (d == 2) x_ -= 1;
-		if (d == 3) y_ -= 1;
-		v_ = x_ + SIZE * y_;
-		if (ret == 3 &&
-		    x >= 0 && x < SIZE &&
-		    y >= 0 && y < SIZE &&
-		    ok &&
-		    x_ >= 0 && x_ < SIZE &&
-		    y_ >= 0 && y_ < SIZE &&
-		    !taken[v_])
-			break;
-		puts("Invalid move!");
-		clearerr(stdin);
-		if (scanf("%*[^\n]") < 0)
-			return -1;
-	}
+	do {
+		if (is_phase1_position(p)) {
+			ret = user_player_phase1(p, &v_);
+			v = EMPTY;
+		} else {
+			ret = user_player_phase2(p, &v, &v_);
+		}
+	} while (ret != 0);
 	for (int i = 0; i < PIECES; ++i)
-		if (p->white[i] == v)
+		if (p->white[i] == v) {
 			p->white[i] = v_;
+			break;
+		}
 	sort4(p->white);
 	return 0;
 }
