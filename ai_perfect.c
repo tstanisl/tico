@@ -1,6 +1,7 @@
 #include "play.h"
 #include "position.h"
 
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -78,6 +79,7 @@ struct position *make_node(struct position *p)
 	*head = n;
 	n->state = PS_UNKNOWN;
 	n->n_children = count_children(n);
+	n->terminal_distance = INT_MAX;
 	/*if (is_terminal(n->black))
 		make_lose_node(n);*/
 	/*if (terminal)
@@ -234,6 +236,31 @@ void gen_terminals_black(struct position *p, int piece)
 
 struct player_fo ai_perfect_player = { .cb = ai_perfect_player_cb };
 
+static int update_distance;
+static bool update_happened;
+
+void update_distance_lose(struct position *p)
+{
+	p = find_node(p);
+	if (!p || p->state != PS_WIN) // unknown node
+		return;
+	if (update_distance > p->terminal_distance)
+		return;
+	update_happened = true;
+	p->terminal_distance = update_distance;
+}
+
+void update_distance_win(struct position *p)
+{
+	p = find_node(p);
+	if (!p || p->state != PS_LOSE) // unknown node
+		return;
+	if (p->terminal_distance == 0)
+		return;
+	update_happened = true;
+	p->terminal_distance = update_distance;
+}
+
 struct player_fo *ai_perfect_init(void)
 {
 	positions = malloc(POOLSIZE * sizeof positions[0]);
@@ -243,8 +270,30 @@ struct player_fo *ai_perfect_init(void)
 	gen_terminals_black(&p, 0);
 	dump_stat();
 	int n_terminals = n_positions;
-	for (int i = 0; i < n_terminals; ++i)
+	for (int i = 0; i < n_terminals; ++i) {
 		make_lose_node(&positions[i]);
+		positions[i].terminal_distance = 0;
+	}
+
+	int pass = 0;
+	do {
+		update_happened = false;
+		for (int i = 0; i < n_positions; ++i) {
+			struct position *p = &positions[i];
+			if (p->terminal_distance != pass)
+				continue;
+			update_distance = pass + 1;
+
+			if (p->state == PS_LOSE) {
+				foreach_child(p, update_distance_lose, true);
+			} else if (p->state == PS_WIN) {
+				foreach_child(p, update_distance_win, true);
+			}
+		}
+		fprintf(stderr, "Finished pass %d.\n", pass);
+	} while (update_happened && pass++ < 32);
+	fprintf(stderr, "Finished in %d passed.\n", pass);
+
 	return &ai_perfect_player;
 }
 
