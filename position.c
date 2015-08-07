@@ -48,6 +48,9 @@ bool is_terminal(uint8_t A[PIECES])
 
 int count_children(struct position *p)
 {
+	// terminal have no children
+	if (is_terminal(p->black))
+		return 0;
 	bool taken[SIZE * SIZE];
 	memset(taken, 0, sizeof taken);
 	for (int i = 0; i < PIECES; ++i) {
