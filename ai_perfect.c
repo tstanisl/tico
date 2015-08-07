@@ -19,6 +19,8 @@ int n_positions;
 int n_lose;
 int n_win;
 int n_htab;
+int n_phase1;
+int n_phase1_done;
 
 uint32_t hash_position(struct position *p)
 {
@@ -49,6 +51,8 @@ void dump_stat(void)
 	fprintf(stderr, "n_lose=%d\n", n_lose);
 	fprintf(stderr, "n_all=%d\n", n_positions);
 	fprintf(stderr, "n_htab=%d\n", n_htab);
+	fprintf(stderr, "n_phase1=%d\n", n_phase1);
+	fprintf(stderr, "n_phase1_done=%d\n", n_phase1_done);
 	fprintf(stderr, "pool=%lld %%\n", 100LL * n_positions / POOLSIZE);
 }
 
@@ -80,6 +84,8 @@ struct position *make_node(struct position *p)
 	n->state = PS_UNKNOWN;
 	n->n_children = count_children(n);
 	n->terminal_distance = INT_MAX;
+	if (is_phase1_position(n))
+		++n_phase1;
 	/*if (is_terminal(n->black))
 		make_lose_node(n);*/
 	/*if (terminal)
@@ -297,6 +303,8 @@ struct player_fo *ai_perfect_init(void)
 			p->state = PS_WIN;
 			foreach_child(p, make_win_handler, true);
 		}
+		if (is_phase1_position(p))
+			++n_phase1_done;
 	}
 	dump_stat();
 	return &ai_perfect_player;
