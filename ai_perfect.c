@@ -194,6 +194,11 @@ void gen_terminals_white(struct position *p, int piece)
 		}
 		return;
 	}
+	if (piece == PIECES - 1) {
+		p->white[piece] = EMPTY;
+		++n_terminal;
+		make_node(p);
+	}
 	int start = piece ? p->white[piece - 1] + 1 : 0;
 	int last = SIZE * SIZE - PIECES + piece;
 	for (int i = start; i <= last; ++i) {
