@@ -64,13 +64,14 @@ int count_empty(struct position *p)
 
 int count_children(struct position *p)
 {
+	// terminal have no children
+	if (is_terminal(p->black))
+		return 0;
+
 	int n_empty = count_empty(p);
 	if (n_empty)
 		return SIZE * SIZE - (2 * PIECES - n_empty);
 
-	// terminal have no children
-	if (is_terminal(p->black))
-		return 0;
 	bool taken[SIZE * SIZE];
 	memset(taken, 0, sizeof taken);
 	for (int i = 0; i < PIECES; ++i) {
