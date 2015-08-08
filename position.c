@@ -241,7 +241,7 @@ void dump_position(struct position *p)
 			dump[p->white[i]] = '@';
 
 	for (int i = 0; i < PIECES; ++i)
-		if (p->white[i] != EMPTY)
+		if (p->black[i] != EMPTY)
 			dump[p->black[i]] = 'O';
 
 	for (int i = 0; i < SIZE * SIZE; ++i) {
