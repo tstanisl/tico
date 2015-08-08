@@ -120,39 +120,39 @@ struct position *make_node_tmp(struct position *p)
 	return &tmp;
 }
 
-int is_better_position(struct position *a, struct position *b)
+int eval_position(struct position *p)
 {
-	if (!a)
-		return 1;
-	if (a->state == PS_WIN) {
-		if (b->state != PS_WIN)
-			return 1;
-		if (a->terminal_distance < b->terminal_distance)
-			return 1;
-		return 0;
-	} else if (a->state == PS_UNKNOWN) {
-		if (b->state == PS_LOSE)
-			return 1;
-		return 0;
-	} else { //  a->state == PS_LOSE
-		if (b->state != PS_LOSE)
-			return 0;
-		if (a->terminal_distance < b->terminal_distance)
-			return 0;
-		return 1;
-	}
+	if (p->state == PS_WIN)
+		return 256 - p->terminal_distance;
+	if (p->state == PS_LOSE)
+		return -255 + p->terminal_distance;
+	return 0;
 }
 
+int ai_best_count;
 struct position ai_best;
+
 void ai_play_handler(struct position *p)
 {
 	//puts("---- checking");
 	//printf("ai_best = %p\n", ai_best);
 	p = make_node_tmp(p);
-
-	//dump_position_short(p);
-	if (is_better_position(&ai_best, p))
+	if (ai_best_count == 0) {
+		ai_best_count = 1;
 		ai_best = *p;
+		return;
+	}
+
+	int cmp = eval_position(&ai_best) - eval_position(p);
+	if (cmp > 0) {
+		ai_best_count = 1;
+		ai_best = *p;
+	} else if (cmp == 0) {
+		if (rand() % (ai_best_count + 1) == 0)
+			ai_best = *p;
+		++ai_best_count;
+	}
+	//dump_position_short(p);
 }
 
 int ai_perfect_player_cb(struct player_fo *fo, struct position *p)
@@ -163,11 +163,10 @@ int ai_perfect_player_cb(struct player_fo *fo, struct position *p)
 		puts("unknown node");
 	else
 		printf("n_children = %d\n", n->n_children);*/
-	ai_best.state = PS_WIN;
-	ai_best.terminal_distance = INT_MIN;
+	ai_best_count = 0;
 	foreach_child(p, ai_play_handler, false);
-	if (ai_best.terminal_distance == INT_MIN) {
-		puts("I failed.");
+	if (ai_best_count == 0) {
+		puts("I failed to find any valid move.");
 		return -1;
 	}
 	if (ai_best.state == PS_LOSE)
