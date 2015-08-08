@@ -1,6 +1,7 @@
 #include "play.h"
 #include "position.h"
 
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -44,6 +45,8 @@ void play(struct player_fo *white, struct player_fo *black)
 	struct position p;
 	//make_random_board(&p);
 	make_empty_board(&p);
+	p.state = PS_UNKNOWN;
+	p.terminal_distance = INT_MAX;
 
 	for (int rounds = 0; rounds < 32; ++rounds) {
 		int ret;
