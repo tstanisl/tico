@@ -170,9 +170,9 @@ int ai_perfect_player_cb(struct player_fo *fo, struct position *p)
 		return -1;
 	}
 	if (ai_best.state == PS_LOSE)
-		puts("I think I'm winning.");
+		printf("I think I'm winning in %d moves.\n", ai_best.terminal_distance);
 	if (ai_best.state == PS_WIN)
-		puts("I think I've lost.");
+		printf("I think I've lost in %d moves.\n", ai_best.terminal_distance);
 	if (ai_best.state == PS_UNKNOWN)
 		puts("I am confused.");
 
