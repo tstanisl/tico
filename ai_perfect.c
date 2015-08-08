@@ -309,3 +309,24 @@ struct player_fo *ai_perfect_init(void)
 	return &ai_perfect_player;
 }
 
+void ai_random_handler(struct position *p)
+{
+	if (rand() % (ai_best_count + 1) == 0)
+		ai_best = *p;
+	++ai_best_count;
+}
+
+int ai_random_player_cb(struct player_fo *fo, struct position *p)
+{
+	(void)fo;
+	ai_best_count = 0;
+	foreach_child(p, ai_random_handler, false);
+	if (ai_best_count == 0) {
+		puts("I failed to find any valid move.");
+		return -1;
+	}
+	memcpy(p->white, ai_best.black, PIECES);
+	return 0;
+}
+
+struct player_fo ai_random = { .cb = ai_random_player_cb };
